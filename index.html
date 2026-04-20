@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公告布告欄</title>
+<style>
+body{
+  margin:0;
+  font-family:Georgia,serif;
+  background:#0d0d0d;
+  color:#d6d6d6;
+  overflow-x:hidden;
+}
+.wrapper{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.container{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:25px;
+  padding:40px;
+  max-width:1000px;
+  width:100%;
+  position:relative;
+  z-index:2;
+}
+.card{
+  background:#1a1a1a;
+  border:2px solid #2b0000;
+  border-radius:10px;
+  padding:15px;
+  cursor:pointer;
+  transition:.3s;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  aspect-ratio:1/1;
+  box-shadow:0 0 10px rgba(120,0,0,.3);
+}
+.card:hover{
+  background:#222;
+  transform:scale(1.03);
+  box-shadow:0 0 20px rgba(150,0,0,.6);
+}
+.title{
+  font-weight:bold;
+  margin-bottom:10px;
+  color:#b33;
+}
+
+.popup{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.9);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:10;
+  padding:20px;
+}
+.popup-content{
+  background:#111;
+  padding:25px;
+  border:2px solid #400000;
+  max-width:560px;
+  width:100%;
+  position:relative;
+  box-shadow:0 0 15px rgba(150,0,0,.5);
+}
+.close{
+  position:absolute;
+  top:10px;
+  right:15px;
+  cursor:pointer;
+  color:#b33;
+}
+
+.glitch{
+  animation:glitch .18s steps(1,end) infinite;
+}
+@keyframes glitch{
+  0%{transform:translate(0,0);}
+  20%{transform:translate(-4px,3px);}
+  40%{transform:translate(3px,-3px);}
+  60%{transform:translate(-3px,-4px);}
+  80%{transform:translate(3px,3px);}
+  100%{transform:translate(0,0);}
+}
+  15%{transform:translate(-6px,4px);}
+  30%{transform:translate(5px,-4px);}
+  45%{transform:translate(-4px,-6px);}
+  60%{transform:translate(4px,5px);}
+  75%{transform:translate(-20px,12px);} /* 大位移 */
+  85%{transform:translate(18px,-14px);} /* 大位移 */
+  100%{transform:translate(0,0);}
+}
+  10%{transform:translate(-8px,5px) rotate(-0.8deg);}
+  20%{transform:translate(10px,-7px) rotate(0.7deg);}
+  30%{transform:translate(-12px,-3px) rotate(-1deg);}
+  40%{transform:translate(7px,9px) rotate(0.6deg);}
+  50%{transform:translate(-10px,8px) rotate(-0.9deg);}
+  60%{transform:translate(12px,-10px) rotate(0.9deg);}
+  70%{transform:translate(-6px,-11px) rotate(-0.7deg);}
+  80%{transform:translate(9px,4px) rotate(0.5deg);}
+  90%{transform:translate(-11px,2px) rotate(-0.6deg);}
+  100%{transform:translate(0,0) rotate(0deg);}
+}
+.far-over{ color:#ff0000 !important;
+  color:#ff0000;
+  font-weight:900;
+  text-shadow:0 0 6px rgba(255,0,0,.35);
+}
+
+/* 右下卡片開啟瞬間驚嚇效果 */
+.scare-flash{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:0;
+  z-index:20;
+  background:rgba(120,0,0,0);
+}
+.scare-flash.active{
+  animation:scareFlash .32s ease-out 1;
+}
+@keyframes scareFlash{
+  0%{opacity:0;background:rgba(255,245,245,0);}
+  12%{opacity:.95;background:rgba(255,248,248,.88);}
+  32%{opacity:.55;background:rgba(120,0,0,.58);}
+  100%{opacity:0;background:rgba(0,0,0,0);}
+}
+.popup-content.scare-burst{
+  animation:scareBurst .32s ease-out 1;
+}
+@keyframes scareBurst{
+  0%{transform:scale(.94) translate(0,0);}
+  12%{transform:scale(1.08) translate(-10px,8px);}
+  25%{transform:scale(1.04) translate(12px,-8px);}
+  42%{transform:scale(1.02) translate(-8px,5px);}
+  100%{transform:scale(1) translate(0,0);}
+}
+.scare-text{
+  animation:scareText .28s ease-out 1;
+}
+@keyframes scareText{
+  0%{letter-spacing:.2em;filter:blur(2px);}
+  100%{letter-spacing:normal;filter:blur(0);}
+}
+
+/* 背景詩 */
+.bg-poem{
+  position:fixed;
+  color:#1a1a1a;
+  opacity:0;
+  pointer-events:none;
+  transition:.3s;
+  font-size:14px;
+  z-index:5;
+}
+.flash{
+  opacity:0.6;
+  color:#b33;
+}
+#p1{top:5%;left:2%;}
+#p2{top:5%;right:2%;}
+#p3{top:25%;left:2%;}
+#p4{top:25%;right:2%;}
+#p5{top:60%;left:2%;}
+#p6{top:60%;right:2%;}
+#p7{bottom:5%;left:50%;transform:translateX(-50%);}
+
+input{
+  background:#000;
+  border:1px solid #500;
+  color:#fff;
+  padding:5px;
+  margin-top:10px;
+  width:100%;
+  box-sizing:border-box;
+}
+button{
+  margin-top:10px;
+  background:#300;
+  color:#fff;
+  border:none;
+  padding:6px;
+  cursor:pointer;
+}
+
+@media (max-width:768px){
+  .container{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width:480px){
+  .container{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="dark-flash" style="
+position:fixed;
+inset:0;
+background:#000;
+opacity:0;
+pointer-events:none;
+z-index:999;
+"></div>
+
+
+<div id="scare-flash" class="scare-flash"></div>
+
+<div id="p1" class="bg-poem">Please don't spread this around.</div>
+<div id="p2" class="bg-poem">I heard something strange happened.</div>
+<div id="p3" class="bg-poem">Last time someone asked about it, they disappeared.</div>
+<div id="p4" class="bg-poem">Look, I'm not saying it's real.</div>
+<div id="p5" class="bg-poem">All I know is people avoid that place.</div>
+<div id="p6" class="bg-poem">Rumors keep coming back.</div>
+<div id="p7" class="bg-poem">Still, you didn't hear this from me.</div>
+
+<div class="wrapper"><div class="container">
+
+<div class="card">
+<div class="title">陸行鳥鞍拍賣會</div>
+精美陸行鳥鞍史無前例最低價，快為您最親近的夥伴添購新裝備吧，最新的禦寒款式庫存已經不多了，要買要快！
+</div>
+
+<div class="card" onclick="openPopup(2)">
+<div class="title">徵冒險者</div>
+覺得自己膽識過人嗎？<br>你就是我要找的人！
+</div>
+
+<div class="card" onclick="openPopup(3)">
+<div class="title">當初重建工程延宕的原因</div>
+大家聽說過當初蒼天街重建的時候有一陣子工程延宕很久的事情嗎？街底那棟大房子的事。
+</div>
+
+<div class="card">
+<div class="title">尋貓啟事</div>
+我的貓在大聖堂附近走失了，請問有人可以幫我留意看看嗎？牠是一隻黑貓，有綠色的眼睛，牠一隻眼睛瞎掉了，只剩下一半的視力，很怕人，找到的話請通知我，不要貿然接近。<br><br>
+牠很喜歡蠟燭，說不定會出現在有燭光的地方。
+</div>
+
+<div class="card">
+<div class="title">乙太之光廣場掃除公告</div>
+近日有許多冒險者反應本市的乙太之光廣場周遭過於雜亂，雖然氣溫很低，但可能也會有害蟲或老鼠孳生，為保持整潔，請大家把不需要的建材移開。<br><br>
+尤其是路標下的長條木樑已經被放置太久了，請盡快清除，感謝各位的配合。
+</div>
+
+<div class="card" onclick="openPopup(6)">
+<div class="title">前陣子有一個討論串的留言<br>是被刪除了嗎？</div>
+</div>
+
+</div></div>
+
+<div class="popup" id="popup">
+  <div class="popup-content" id="popup-content">
+    <div class="close" onclick="closePopup()">✖</div>
+    <div id="popup-text"></div>
+  </div>
+</div>
+
+<script>
+let glitchInterval = null;
+let poemInterval = null;
+let index = 0;
+let scareTimeout = null;
+const PASSWORD = "pillars";
+let threadDeletedState = false;
+let threadSequenceTimers = [];
+let threadFloodInterval = null;
+
+function randomID(){
+  return Math.random().toString(36).substring(2,10);
+}
+
+function randomGlitch(){
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ░░░░░░░░";
+  let length = Math.floor(Math.random()*20)+10;
+  let str = "";
+  for(let i=0;i<length;i++){
+    str += chars[Math.floor(Math.random()*chars.length)];
+  }
+  return str;
+}
+
+function farFromOverHTML(){
+  const scale = Math.random() < 0.42 ? (1.08 + Math.random()*0.18).toFixed(2) : "1";
+  const weight = Math.random() < 0.55 ? "900" : "800";
+  const fullLine = Math.random() < 0.12; // 12% 機率蓋滿整行
+
+  if(fullLine){
+    triggerDarkFlash();
+    return `<span style="
+      color:#ff0000 !important;
+      display:block;
+      width:100%;
+      text-align:left;
+      transform:scale(${scale});
+      font-weight:${weight};
+      letter-spacing:.06em;
+    ">It's far from over.</span>`;
+  }
+
+  return `<span style="
+    color:#ff0000 !important;
+    display:inline-block;
+    transform:scale(${scale});
+    font-weight:${weight};
+  ">It's far from over.</span>`;
+}
+
+function threadDeletedHTML(){
+  return `<b>當初重建工程延宕的原因</b><br><br>提示：討論串已被刪除。`;
+}
+
+function threadSequenceHTML(){
+  return `<b>當初重建工程延宕的原因</b><br><br>大家聽說過當初蒼天街重建的時候有一陣子工程延宕很久的事情嗎？街底那棟大房子的事。<br><br><div id="thread-lines">---<br><span class="thread-line">${randomID()}：這是要說怪談嗎？</span><br><span class="thread-line">${randomID()}：怎麼突然要追究那麼久以前的事情。</span><br><span class="thread-line">${randomID()}：因為最近有人在聊吧？</span><br><span class="thread-line">${randomID()}：聽說某個冒險者跟當初那件事有關係，那個人最近在格里達尼亞很活躍。</span><br><span class="thread-line">${randomID()}：是有過什麼事件嗎？完全沒聽說過。</span><br><br><span id="thread-final">提示：討論串已被刪除。</span></div>`;
+}
+
+function randomDeletedGlitch(len = 18){
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ░░░░░░░░";
+  let str = "";
+  for(let i=0;i<len;i++){
+    str += chars[Math.floor(Math.random()*chars.length)];
+  }
+  return str;
+}
+
+function startDeletedThreadSequence(){
+  const popupText = document.getElementById("popup-text");
+  popupText.innerHTML = threadSequenceHTML();
+
+  const lines = [...document.querySelectorAll('.thread-line')];
+  const finalLine = document.getElementById('thread-final');
+
+  lines.forEach(line=>{
+    line.style.display = "inline-block";
+    line.style.transition = "opacity .22s ease, filter .22s ease";
+  });
+
+  lines.forEach((line, idx)=>{
+    const timer = setTimeout(()=>{
+      line.style.opacity = "0";
+      line.style.filter = "blur(2px)";
+      const kill = setTimeout(()=>{
+        line.textContent = randomDeletedGlitch(12 + Math.floor(Math.random()*8));
+        line.style.opacity = "0.35";
+        const hide = setTimeout(()=>{
+          line.style.display = "none";
+        }, 120);
+        threadSequenceTimers.push(hide);
+      }, 120);
+      threadSequenceTimers.push(kill);
+    }, 600 + idx * 260);
+    threadSequenceTimers.push(timer);
+  });
+
+  const settleTimer = setTimeout(()=>{
+    popupText.innerHTML = threadDeletedHTML();
+  }, 600 + lines.length * 260 + 380);
+  threadSequenceTimers.push(settleTimer);
+
+  const corruptTimer = setTimeout(()=>{
+    const finalOnly = document.getElementById('popup-text');
+    if(!finalOnly) return;
+
+    let glitchCount = 0;
+    threadFloodInterval = setInterval(()=>{
+      finalOnly.innerHTML = `<b>當初重建工程延宕的原因</b><br><br><span style="color:#b33;">${randomDeletedGlitch(10 + Math.floor(Math.random()*8))}</span>`;
+      glitchCount++;
+      if(glitchCount >= 8){
+        clearInterval(threadFloodInterval);
+        threadFloodInterval = null;
+        startDontLookFlood();
+      }
+    }, 140);
+  }, 600 + lines.length * 260 + 3380);
+  threadSequenceTimers.push(corruptTimer);
+}
+
+function startDontLookFlood(){
+  const popupText = document.getElementById("popup-text");
+  const popupContent = document.getElementById("popup-content");
+  if(!popupText || !popupContent) return;
+
+  let text = "";
+  let bursts = 0;
+
+  popupContent.classList.add("glitch");
+
+  threadFloodInterval = setInterval(()=>{
+    text += "DONTLOOK";
+    popupText.innerHTML = `<div style="color:#ff0000;font-weight:900;line-height:1.12;font-size:22px;word-break:break-all;letter-spacing:.03em;">${text}</div>`;
+    bursts++;
+
+    if(text.length > 620){
+      clearInterval(threadFloodInterval);
+      threadFloodInterval = null;
+      const finishTimer = setTimeout(()=>{
+        popupContent.classList.remove("glitch");
+        popupText.innerHTML = threadDeletedHTML();
+        threadDeletedState = true;
+      }, 260);
+      threadSequenceTimers.push(finishTimer);
+    }
+  }, 24);
+}
+
+function clearTimers(){
+  if(glitchInterval){
+    clearInterval(glitchInterval);
+    glitchInterval = null;
+  }
+  if(scareTimeout){
+    clearTimeout(scareTimeout);
+    scareTimeout = null;
+  }
+  threadSequenceTimers.forEach(t=>clearTimeout(t));
+  threadSequenceTimers = [];
+  if(threadFloodInterval){
+    clearInterval(threadFloodInterval);
+    threadFloodInterval = null;
+  }
+}
+
+function resetScareState(){
+  const popupContent = document.getElementById("popup-content");
+  const flash = document.getElementById("scare-flash");
+  popupContent.classList.remove("glitch","scare-burst");
+  flash.classList.remove("active");
+}
+
+function openPopup(id){
+  const popup = document.getElementById("popup");
+  const popupText = document.getElementById("popup-text");
+  const popupContent = document.getElementById("popup-content");
+
+  popup.style.display = "flex";
+  resetScareState();
+  clearTimers();
+
+  if(id===2){
+    popupText.innerHTML = `<b>徵冒險者</b><br><br>覺得自己膽識過人嗎？<br>你就是我要找的人！<br><br>請輸入關鍵字：<br><input id="pwd"><button onclick="checkPwd()">確認</button><div id="result"></div>`;
+    return;
+  }
+
+  if(id===3){
+    if(threadDeletedState){
+      popupText.innerHTML = threadDeletedHTML();
+      return;
+    }
+    startDeletedThreadSequence();
+    return;
+  }
+
+  if(id===6){
+    popupText.innerHTML = `<b class="scare-text">前陣子有一個討論串的留言是被刪除了嗎？</b><br><br>是在講蒼天街 <span class="glitch-text">${farFromOverHTML()}</span><br>有人有看到 <span class="glitch-text">${farFromOverHTML()}</span>`;
+    triggerScareEffect();
+    scareTimeout = setTimeout(()=>{
+      startGlitch();
+    }, 260);
+  }
+}
+
+function triggerScareEffect(){
+  const popupContent = document.getElementById("popup-content");
+  const flash = document.getElementById("scare-flash");
+
+  popupContent.classList.add("scare-burst");
+  flash.classList.add("active");
+
+  if(navigator.vibrate){
+    try{
+      navigator.vibrate([120,40,120]);
+    }catch(e){}
+  }
+
+  setTimeout(()=>{
+    popupContent.classList.remove("scare-burst");
+    flash.classList.remove("active");
+    popupContent.classList.add("glitch");
+  }, 320);
+}
+
+function closePopup(){
+  document.getElementById("popup").style.display = "none";
+  clearTimers();
+  resetScareState();
+}
+
+function checkPwd(){
+  const input = document.getElementById("pwd");
+  const result = document.getElementById("result");
+  if(!input || !result) return;
+
+  const v = input.value.toLowerCase();
+  if(v===PASSWORD){
+    result.innerHTML = "（10.9 , 11.6）";
+  }else{
+    result.innerHTML = "P░░░░░S";
+  }
+}
+
+function startGlitch(){
+  const popupContent = document.getElementById("popup-content");
+  glitchInterval = setInterval(()=>{
+    document.querySelectorAll('.glitch-text').forEach(el=>{
+      // 偶發性大位移
+      if(Math.random()<0.08){
+        el.style.transform = `translate(${(Math.random()*80-40)}px, ${(Math.random()*80-40)}px)`;
+        setTimeout(()=>{el.style.transform='';},120);
+      }
+
+      if(Math.random()<0.10){
+        el.innerHTML = farFromOverHTML();
+        setTimeout(()=>{
+          if(document.body.contains(el) && popupContent.classList.contains("glitch")){
+            el.textContent = randomGlitch();
+          }
+        },380);
+      }else{
+        el.textContent = randomGlitch();
+      }
+    });
+  },380);
+}
+
+function startPoem(){
+  const lines = document.querySelectorAll('.bg-poem');
+  poemInterval = setInterval(()=>{
+    lines.forEach(l=>l.classList.remove('flash'));
+    lines[index % lines.length].classList.add('flash');
+    index++;
+  },1000);
+}
+
+document.getElementById("popup").addEventListener("click", function(e){
+  if(e.target.id === "popup"){
+    closePopup();
+  }
+});
+
+startPoem();
+
+function triggerDarkFlash(){
+  const flash = document.getElementById("dark-flash");
+  if(!flash) return;
+  flash.style.opacity = "0.85";
+  setTimeout(()=>{
+    flash.style.opacity = "0";
+  },100);
+}
+</script>
+
+
+</body>
+</html>
