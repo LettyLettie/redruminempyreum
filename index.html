@@ -614,6 +614,7 @@ let poemFrame = null;
 let index = 0;
 let scareTimeout = null;
 let scareCleanupTimeout = null;
+const PASSWORD_API = "/api/check-keyword";
 let threadDeletedState = false;
 let threadRemovedFromBoard = false;
 let threadSequenceTimers = [];
@@ -935,15 +936,7 @@ function openPopup(id){
 
   if(id===2){
     pwdErrorCount = 0;
-    popupText.innerHTML = `<b>徵冒險者</b><br><br>覺得自己膽識過人嗎？<br>你就是我要找的人！<br><br>請輸入關鍵字：<br><input id="pwd" autocomplete="off"><button onclick="checkPwd()">確認</button><div id="result"></div>`;
-    const pwdInput = document.getElementById("pwd");
-    if(pwdInput){
-      pwdInput.addEventListener("keydown", (e)=>{
-        if(e.key === "Enter"){
-          checkPwd();
-        }
-      });
-    }
+    popupText.innerHTML = `<b>徵冒險者</b><br><br>覺得自己膽識過人嗎？<br>你就是我要找的人！<br><br>請輸入關鍵字：<br><input id="pwd"><button onclick="checkPwd()">確認</button><div id="result"></div>`;
     return;
   }
 
@@ -1018,43 +1011,49 @@ async function checkPwd(){
   const result = document.getElementById("result");
   if(!input || !result) return;
 
-  const v = input.value.trim();
+  const value = input.value;
   input.classList.remove("input-error");
   void input.offsetWidth;
-  result.innerHTML = "驗證中…";
+  result.innerHTML = "";
 
   try{
-    const resp = await fetch("/api/check-keyword", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({ keyword: v })
+    const res = await fetch(PASSWORD_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keyword: value })
     });
 
-    if(!resp.ok){
-      throw new Error("server_error");
+    let data = {};
+    try{
+      data = await res.json();
+    }catch(e){
+      data = {};
     }
 
-    const data = await resp.json();
-    if(data && data.ok){
+    if(res.ok && data.ok){
       pwdErrorCount = 0;
-      result.innerHTML = data.payload || "（10.9 , 11.6）";
+      result.innerHTML = "（10.9 , 11.6）";
       return;
     }
-  }catch(err){
-    result.innerHTML = `<div class="error-text">驗證服務暫時不可用</div>`;
-    return;
+
+    handlePasswordFailure(false);
+  }catch(e){
+    handlePasswordFailure(true);
   }
 
-  result.innerHTML = "";
-  pwdErrorCount++;
-  input.classList.add("input-error");
+  function handlePasswordFailure(isSystemError){
+    pwdErrorCount++;
+    input.classList.add("input-error");
 
-  if(pwdErrorCount >= MAX_ERROR){
-    triggerPasswordFailureEvent();
-    return;
+    if(pwdErrorCount >= MAX_ERROR){
+      triggerPasswordFailureEvent();
+      return;
+    }
+
+    result.innerHTML = isSystemError
+      ? `<div class="error-text">驗證服務暫時不可用</div>`
+      : `<div class="error-text">密碼錯誤</div>`;
   }
-
-  result.innerHTML = `<div class="error-text">密碼錯誤</div>`;
 }
 
 function triggerPasswordFailureEvent(){
